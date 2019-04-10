@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <title>Cesium Demo</title>
+    <script type="text/javascript" src="Cesium/Cesium.js"></script>
+    <script type="text/javascript" src="Cesium/CesiumHeatmap.js"></script>
+    <!--<script type="text/javascript" src="Cesium/HeatmapImageryProvider.js"></script>-->
+</head>
+<body>
+<style>
+
+    @import url(Cesium/Widgets/widgets.css);
+    @import url(Cesium/Widgets/lighter.css);
+
+    .fullSize {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: none;
+        width: 100%;
+        height: 100%;
+    }
+
+</style>
+<div id="cesiumContainer" class="fullSize"></div>
+<div id="loadingOverlay"><h1>Loading...</h1></div>
+
+<script>
+    var viewer = new Cesium.Viewer('cesiumContainer', {
+        timeline: false,
+        animation: false,
+    });
+
+    //去掉月亮
+    viewer.scene.moon.destroy();
+    viewer.scene.moon = void 0;
+
+    //去掉太阳
+    viewer.scene.sun.destroy();
+    viewer.scene.sun = void 0;
+
+    //去掉天空
+    viewer.scene.skyBox.destroy();
+    viewer.scene.skyBox = void 0;
+    viewer.scene.backgroundColor = Cesium.Color.BLACK.clone();
+
+
+    var points = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
+
+    var highlightPointId = -1;
+    //随机点覆盖
+    // for (var i = 0; i < 10000; i++) {
+    //     points.add({
+    //         position: Cesium.Cartesian3.fromDegrees(Math.random() * 180, Math.random() * 360),
+    //         pixelSize: 10,
+    //         color: Cesium.Color.CYAN.withAlpha(0.5),
+    //         id: i
+    //     });
+    // }
+
+    //球体均匀点覆盖
+     for (var j = -90; j <= 90; j+=1) {
+         var col = 180 / (Math.floor(180 * Math.sin((90 - Math.abs(j)) * Math.PI / 180)));
+         for (var i = -180; i <= 180; i+=col) {
+             points.add({
+                 position: Cesium.Cartesian3.fromDegrees(i, j),
+                 pixelSize: 3,
+                 color: Cesium.Color.CYAN.withAlpha(1),
+                 id: i
+             });
+         }
+     }
+
+    //地理坐标系均匀点覆盖
+    // for (var i = -180; i <= 180; i+=2) {
+    //     for (var j = -90; j <= 90; j+=2) {
+    //         points.add({
+    //             position: Cesium.Cartesian3.fromDegrees(i, j),
+    //             pixelSize: 5,
+    //             color: Cesium.Color.CYAN.withAlpha(0.5),
+    //             id: i
+    //         });
+    //     }
+    // }
+
+    var bounds = {
+        west: -109.0, south: 50.0, east: -80.0, north: 70
+    };
+
+    // 初始化CesiumHeatmap
+    var heatMap = CesiumHeatmap.create(
+        viewer, // 视图层
+        bounds
+    );
+
+    // 添加数据 最小值，最大值，数据集
+    //heatMap.setWGS84Data(0, 100, getData(3000));
+
+    // function getData(length) {
+    //     var data = [];
+    //     for (var i = 0; i < length; i++) {
+    //         var x = Math.random() * (-109 + 80) - 80;
+    //         var y = Math.random() * (80 - 50) + 50;
+    //         var value = 50 / a(y);
+    //         data.push({x: x, y: y, value: value});
+    //     }
+    //     console.log(data);
+    //     return data;
+    // }
+
+    // // 动态数据 [{x: -97.6433525165054, y: 45.61443064377248, value: 11.409122369106317}]
+    function getData(length) {
+        var data = [];
+        for (var y = 50; y <= 70; y+=0.3) {
+            var col = 180 / (Math.floor(180 / a(y)));
+            col = 1;
+            for (var x = -109.0; x <= -80; x+=col) {
+                var value = 50;
+                data.push({x: x, y: y, value: value});
+                // points.add({
+                //                 position: Cesium.Cartesian3.fromDegrees(x, y),
+                //                 pixelSize: 3,
+                //                 color: Cesium.Color.CYAN.withAlpha(1),
+                //             });
+            }
+        }
+        return data;
+    }
+
+    function a(j) {
+        return Math.sin((90 - Math.abs(j)) * Math.PI / 180);
+    }
+
+    var setPointHighlight = function (id) {
+        var point = points.get(id);
+        point.color = Cesium.Color.WHITE;
+        point.pixelSize = 16;
+    };
+    var setPointDefault = function (id) {
+        var point = points.get(id);
+        point.color = Cesium.Color.CYAN.withAlpha(0.5);
+        point.pixelSize = 10;
+    };
+
+    // var onMouseMove = function (e) {
+    //     var pick = viewer.scene.pick(e.endPosition);
+    //     if(pick){
+    //         setPointHighlight(pick.id);
+    //         if (highlightPointId !== -1 && highlightPointId !== pick.id) {
+    //             setPointDefault(highlightPointId);
+    //         }
+    //         highlightPointId = pick.id;
+    //     } else if (highlightPointId !== -1){
+    //         setPointDefault(highlightPointId);
+    //     }
+    //
+    // };
+
+    var onWheel = function (e) {
+        console.log(e);
+    };
+
+    //监听事件
+    //滚轮事件
+    handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+    handler.setInputAction(function (e) {
+        onWheel(e)
+    }, Cesium.ScreenSpaceEventType.WHEEL);
+
+    //触摸事件
+    handler.setInputAction(function (e) {
+        var t = e.distance.endPosition.y - e.distance.startPosition.y;
+
+    }, Cesium.ScreenSpaceEventType.PINCH_MOVE);
+
+    // //鼠标移动
+    // handler.setInputAction(function (e) {
+    //     onMouseMove(e)
+    // }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+</script>
+</body>
+</html>
